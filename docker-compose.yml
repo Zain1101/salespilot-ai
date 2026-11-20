@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: salespilot-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: salespilot_db
+      POSTGRES_USER: salespilot
+      POSTGRES_PASSWORD: salespilot_dev_password
+
+    ports:
+      - "127.0.0.1:5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salespilot -d salespilot_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
