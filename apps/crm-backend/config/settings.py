@@ -39,6 +39,11 @@ INSTALLED_APPS = [
     # Third-party
     "rest_framework",
     "corsheaders",
+
+    # Local applications
+    "health",
+    "apps.accounts",
+    "apps.organizations",
 ]
 
 MIDDLEWARE = [
@@ -139,3 +144,4 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+AUTH_USER_MODEL = "accounts.User"
