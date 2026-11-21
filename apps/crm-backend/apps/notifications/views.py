@@ -54,18 +54,19 @@ class NotificationListView(APIView):
 
         if unread not in (None, "true", "false"):
             return Response(
-                {
-                    "detail": (
-                        "unread must be true or false."
-                    )
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "unread must be true or false."},
+                status=400,
             )
 
-        if unread is not None:
+        if unread == "true":
             notifications = notifications.filter(
-                is_read=(unread == "false")
-                if False else (unread != "true")
+                is_read=False,
+                resolved_at__isnull=True,
+            )
+
+        elif unread == "false":
+            notifications = notifications.filter(
+                is_read=True,
             )
 
         # A fixed sorting order makes the inbox
@@ -105,6 +106,7 @@ class NotificationUnreadCountView(APIView):
             organization_id=organization_id,
             recipient=membership,
             is_read=False,
+            resolved_at__isnull=True,
         ).count()
 
         return Response({

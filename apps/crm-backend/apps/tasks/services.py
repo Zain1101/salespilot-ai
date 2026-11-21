@@ -10,7 +10,7 @@ from apps.opportunities.models import Opportunity
 from common.tenancy.services import require_organization_role
 
 from .models import SalesTask, SalesTaskStatusHistory
-
+from apps.notifications.models import Notification
 
 MANAGEMENT_ROLES = [
     Membership.Role.OWNER,
@@ -225,6 +225,17 @@ def change_task_status(
         new_status=new_status,
         changed_by=changed_by,
         reason=reason,
+    )
+    # The task is no longer pending.
+    # Preserve its reminders, but remove them
+    # from the active notification inbox.
+
+    Notification.objects.filter(
+        organization=organization,
+        task=task,
+        resolved_at__isnull=True,
+    ).update(
+        resolved_at=timezone.now(),
     )
 
     return task, True

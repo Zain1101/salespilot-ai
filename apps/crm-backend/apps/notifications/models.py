@@ -41,6 +41,11 @@ class Notification(models.Model):
         max_length=30,
         choices=Type.choices,
     )
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+    )
 
     title = models.CharField(max_length=255)
     message = models.TextField()

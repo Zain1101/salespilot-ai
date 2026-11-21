@@ -316,3 +316,194 @@ class NotificationTests(APITestCase):
             Notification.objects.filter(task=task).count(),
             2,
         )
+        
+    def test_completed_task_notifications_resolve(self):
+        from apps.tasks.services import change_task_status
+
+        task = self.create_task(hours_until_due=1)
+
+        process_task_reminders()
+
+        notification = Notification.objects.get(task=task)
+        self.assertIsNone(notification.resolved_at)
+
+        changed_task, changed = change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.COMPLETED,
+            reason="Customer follow-up completed.",
+        )
+
+        self.assertTrue(changed)
+
+        notification.refresh_from_db()
+
+        self.assertIsNotNone(notification.resolved_at)
+
+        response = self.client.get(self.count_url)
+
+        self.assertEqual(
+            response.data["unread_count"],
+            0,
+        )
+
+
+    def test_cancelled_task_notifications_resolve(self):
+        from apps.tasks.services import change_task_status
+
+        task = self.create_task(hours_until_due=1)
+
+        process_task_reminders()
+
+        _, changed = change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.CANCELLED,
+            reason="Follow-up no longer necessary.",
+        )
+
+        self.assertTrue(changed)
+
+        notification = Notification.objects.get(task=task)
+
+        self.assertIsNotNone(notification.resolved_at)
+
+
+    def test_resolved_notification_remains_in_history(self):
+        from apps.tasks.services import change_task_status
+
+        task = self.create_task(hours_until_due=1)
+
+        process_task_reminders()
+
+        change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.COMPLETED,
+        )
+
+        # It remains in the full historical inbox.
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+
+        self.assertIsNotNone(
+            response.data["results"][0]["resolved_at"]
+        )
+
+
+    def test_resolved_notification_not_in_active_unread(self):
+        from apps.tasks.services import change_task_status
+
+        task = self.create_task(hours_until_due=1)
+
+        process_task_reminders()
+
+        change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.COMPLETED,
+        )
+
+        response = self.client.get(
+            self.list_url,
+            {"unread": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
+
+    def test_completed_task_does_not_generate_overdue_alert(self):
+        from apps.tasks.services import change_task_status
+
+        task = self.create_task(hours_until_due=1)
+
+        first_now = timezone.now()
+
+        process_task_reminders(now=first_now)
+
+        change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.COMPLETED,
+        )
+
+        # Simulate the reminder processor running
+        # after the original due date.
+        result = process_task_reminders(
+            now=task.due_at + timedelta(hours=1)
+        )
+
+        self.assertEqual(result["overdue_created"], 0)
+
+        self.assertFalse(
+            Notification.objects.filter(
+                task=task,
+                notification_type=Notification.Type.TASK_OVERDUE,
+            ).exists()
+        )
+
+
+    def test_duplicate_task_completion_keeps_resolution_time(self):
+        from apps.tasks.services import change_task_status
+
+        task = self.create_task(hours_until_due=1)
+
+        process_task_reminders()
+
+        change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.COMPLETED,
+        )
+
+        notification = Notification.objects.get(task=task)
+        original_resolved_at = notification.resolved_at
+
+        _, changed = change_task_status(
+            organization_id=self.org.id,
+            task_id=task.id,
+            changed_by=self.owner,
+            new_status=SalesTask.Status.COMPLETED,
+        )
+
+        self.assertFalse(changed)
+
+        notification.refresh_from_db()
+
+        self.assertEqual(
+            notification.resolved_at,
+            original_resolved_at,
+        )
+
+
+    def test_reminder_management_command(self):
+        from io import StringIO
+        from django.core.management import call_command
+
+        self.create_task(hours_until_due=1)
+
+        output = StringIO()
+
+        call_command(
+            "process_task_reminders",
+            stdout=output,
+        )
+
+        self.assertEqual(
+            Notification.objects.count(),
+            1,
+        )
+
+        self.assertIn(
+            "Reminder processing finished",
+            output.getvalue(),
+        )
