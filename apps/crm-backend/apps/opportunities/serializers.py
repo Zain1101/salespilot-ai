@@ -70,3 +70,15 @@ class OpportunitySerializer(serializers.ModelSerializer):
 
     def get_contact_name(self, obj):
         return str(obj.contact) if obj.contact else None
+
+class OpportunityStageTransitionSerializer(
+    serializers.Serializer
+):
+    stage_id = serializers.UUIDField()
+
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        trim_whitespace=True,
+    )

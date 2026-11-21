@@ -116,3 +116,62 @@ class Opportunity(models.Model):
 
     def __str__(self):
         return self.title
+    
+class OpportunityStageHistory(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="opportunity_stage_events",
+    )
+
+    opportunity = models.ForeignKey(
+        Opportunity,
+        on_delete=models.PROTECT,
+        related_name="stage_history",
+    )
+
+    old_stage = models.ForeignKey(
+        "pipelines.PipelineStage",
+        on_delete=models.PROTECT,
+        related_name="opportunity_stage_exits",
+    )
+
+    new_stage = models.ForeignKey(
+        "pipelines.PipelineStage",
+        on_delete=models.PROTECT,
+        related_name="opportunity_stage_entries",
+    )
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="opportunity_stage_changes",
+    )
+
+    reason = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+        indexes = [
+            models.Index(
+                fields=["organization", "created_at"],
+                name="opp_stage_hist_org_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.opportunity_id}: "
+            f"{self.old_stage_id} -> {self.new_stage_id}"
+        )
