@@ -74,4 +74,9 @@ urlpatterns = [
     "api/v1/organizations/<uuid:organization_id>/activities/",
     include("apps.activities.urls"),
     ),
+    
+    path(
+    "api/v1/organizations/<uuid:organization_id>/tasks/",
+    include("apps.tasks.urls"),
+    ),
 ]
