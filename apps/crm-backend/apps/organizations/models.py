@@ -2,7 +2,11 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+import hashlib
+import secrets
 
+from datetime import timedelta
+from django.utils import timezone
 
 class Organization(models.Model):
     id = models.UUIDField(
@@ -75,6 +79,7 @@ class Membership(models.Model):
 
     joined_at = models.DateTimeField(auto_now_add=True)
 
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -87,4 +92,82 @@ class Membership(models.Model):
         return (
             f"{self.user.email} - "
             f"{self.organization.name} ({self.role})"
+        )
+        
+class OrganizationInvitation(models.Model):
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        REVOKED = "revoked", "Revoked"
+        EXPIRED = "expired", "Expired"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="invitations",
+    )
+
+    email = models.EmailField()
+
+    role = models.CharField(
+        max_length=20,
+        choices=Membership.Role.choices,
+    )
+
+    token_hash = models.CharField(
+        max_length=64,
+        unique=True,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="sent_invitations",
+    )
+
+    expires_at = models.DateTimeField()
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    @staticmethod
+    def generate_token():
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hash_token(token):
+        return hashlib.sha256(
+            token.encode("utf-8")
+        ).hexdigest()
+
+    @property
+    def is_valid(self):
+        return (
+            self.status == self.Status.PENDING
+            and timezone.now() < self.expires_at
+        )
+
+    def __str__(self):
+        return (
+            f"{self.email} invited to "
+            f"{self.organization.name}"
         )

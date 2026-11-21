@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from rest_framework import serializers
 
 from .models import Organization
+from .models import Membership, OrganizationInvitation
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -40,3 +41,46 @@ class CreateOrganizationSerializer(serializers.Serializer):
             )
 
         return value
+    
+class InvitationCreateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    role = serializers.ChoiceField(
+        choices=[
+            Membership.Role.ADMIN,
+            Membership.Role.MANAGER,
+            Membership.Role.SALES_REP,
+            Membership.Role.VIEWER,
+        ]
+    )
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+    invited_by_email = serializers.EmailField(
+        source="invited_by.email",
+        read_only=True,
+    )
+
+    is_valid = serializers.BooleanField(
+        read_only=True,
+    )
+
+    class Meta:
+        model = OrganizationInvitation
+
+        fields = [
+            "id",
+            "email",
+            "role",
+            "status",
+            "invited_by_email",
+            "expires_at",
+            "created_at",
+            "accepted_at",
+            "is_valid",
+        ]
+
+        read_only_fields = fields

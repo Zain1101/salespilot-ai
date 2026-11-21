@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import Organization, Membership
+from .models import OrganizationInvitation
 
 
 @admin.register(Organization)
@@ -27,3 +28,30 @@ class MembershipAdmin(admin.ModelAdmin):
     )
 
     list_filter = ("role", "is_active")
+    
+@admin.register(OrganizationInvitation)
+class OrganizationInvitationAdmin(admin.ModelAdmin):
+    list_display = (
+        "email",
+        "organization",
+        "role",
+        "status",
+        "expires_at",
+        "created_at",
+    )
+
+    list_filter = (
+        "status",
+        "role",
+    )
+
+    search_fields = (
+        "email",
+        "organization__name",
+    )
+
+    readonly_fields = (
+        "token_hash",
+        "created_at",
+        "accepted_at",
+    )
