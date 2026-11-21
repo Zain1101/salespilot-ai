@@ -12,7 +12,7 @@ from .assignment_views import (
     LeadAssignmentView,
     LeadAssignmentHistoryView,
 )
-
+from apps.opportunities.views import LeadConversionView
 
 urlpatterns = [
     path(
@@ -49,5 +49,11 @@ urlpatterns = [
         "<uuid:pk>/assignment-history/",
         LeadAssignmentHistoryView.as_view(),
         name="lead-assignment-history",
+    ),
+    
+    path(
+    "<uuid:pk>/convert/",
+    LeadConversionView.as_view(),
+    name="lead-convert",
     ),
 ]
