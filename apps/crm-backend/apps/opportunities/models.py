@@ -17,6 +17,21 @@ class Opportunity(models.Model):
         default=uuid.uuid4,
         editable=False,
     )
+    pipeline = models.ForeignKey(
+        "pipelines.Pipeline",
+        on_delete=models.PROTECT,
+        related_name="opportunities",
+        null=True,
+        blank=True,
+    )
+
+    stage = models.ForeignKey(
+        "pipelines.PipelineStage",
+        on_delete=models.PROTECT,
+        related_name="opportunities",
+        null=True,
+        blank=True,
+    )
 
     organization = models.ForeignKey(
         "organizations.Organization",

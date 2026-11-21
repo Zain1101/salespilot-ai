@@ -8,7 +8,7 @@ from apps.organizations.models import Membership
 from apps.organizations.services import create_organization
 
 from .models import Opportunity
-
+from apps.pipelines.services import create_sales_pipeline
 
 User = get_user_model()
 
@@ -76,6 +76,11 @@ class OpportunityConversionTests(APITestCase):
                 "organization_id": self.org.id,
                 "pk": self.lead.id,
             },
+        )
+        self.pipeline = create_sales_pipeline(
+            organization_id=self.org.id,
+            created_by=self.owner,
+            name="Default Sales Pipeline",
         )
 
     def test_owner_can_convert_qualified_lead(self):

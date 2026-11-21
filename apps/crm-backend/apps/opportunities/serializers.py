@@ -21,6 +21,23 @@ class OpportunitySerializer(serializers.ModelSerializer):
         source="converted_by.email",
         read_only=True,
     )
+    pipeline_name = serializers.CharField(
+        source="pipeline.name",
+        read_only=True,
+        default=None,
+    )
+
+    stage_name = serializers.CharField(
+        source="stage.name",
+        read_only=True,
+        default=None,
+    )
+
+    stage_probability = serializers.IntegerField(
+        source="stage.probability",
+        read_only=True,
+        default=None,
+    )
 
     class Meta:
         model = Opportunity
@@ -42,6 +59,11 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "converted_at",
             "created_at",
             "updated_at",
+            "pipeline",
+            "pipeline_name",
+            "stage",
+            "stage_name",
+            "stage_probability",
         ]
 
         read_only_fields = fields

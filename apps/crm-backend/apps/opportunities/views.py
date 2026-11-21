@@ -31,6 +31,8 @@ class OpportunityListView(
         "company",
         "contact",
         "converted_by",
+        "pipeline",
+        "stage",
     )
 
     serializer_class = OpportunitySerializer
@@ -50,6 +52,8 @@ class OpportunityDetailView(
         "company",
         "contact",
         "converted_by",
+        "pipeline",
+        "stage",
     )
 
     serializer_class = OpportunitySerializer

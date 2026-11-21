@@ -10,7 +10,7 @@ from apps.organizations.models import Organization, Membership
 from common.tenancy.services import require_organization_role
 
 from .models import Opportunity
-
+from apps.pipelines.models import Pipeline, PipelineStage
 
 CONVERSION_ROLES = [
     Membership.Role.OWNER,
@@ -92,7 +92,33 @@ def convert_lead_to_opportunity(
         raise ValidationError(
             "Restore the associated contact first."
         )
+    default_pipeline = (
+        Pipeline.objects
+        .filter(
+            organization=organization,
+            is_default=True,
+            is_active=True,
+        )
+        .first()
+    )
 
+    if default_pipeline is None:
+        raise ValidationError(
+            "No active default sales pipeline exists. "
+            "Create one before converting leads."
+        )
+
+    first_stage = (
+        PipelineStage.objects
+        .filter(pipeline=default_pipeline)
+        .order_by("position", "id")
+        .first()
+    )
+
+    if first_stage is None:
+        raise ValidationError(
+            "The default pipeline has no stages."
+        )
     opportunity = Opportunity.objects.create(
         organization=organization,
         source_lead=lead,
@@ -103,6 +129,10 @@ def convert_lead_to_opportunity(
         currency=lead.currency,
         converted_by=converted_by,
         status=Opportunity.Status.OPEN,
-    )
+
+        # New fields
+        pipeline=default_pipeline,
+        stage=first_stage,
+        )
 
     return opportunity, True
