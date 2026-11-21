@@ -203,3 +203,26 @@ class LeadSerializer(serializers.ModelSerializer):
                 })
 
         return attrs
+class LeadStatusTransitionSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=Lead.Status.choices,
+    )
+
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        trim_whitespace=True,
+    )
+
+    def validate(self, attrs):
+        if attrs["status"] == Lead.Status.DISQUALIFIED:
+            if not attrs.get("reason", "").strip():
+                raise serializers.ValidationError({
+                    "reason": (
+                        "A reason is required when "
+                        "disqualifying a lead."
+                    )
+                })
+
+        return attrs

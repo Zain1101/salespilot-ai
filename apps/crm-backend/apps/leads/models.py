@@ -139,3 +139,57 @@ class Lead(models.Model):
 
     def __str__(self):
         return self.title
+    
+class LeadStatusHistory(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    lead = models.ForeignKey(
+        Lead,
+        on_delete=models.PROTECT,
+        related_name="status_history",
+    )
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="lead_status_events",
+    )
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="lead_status_changes",
+    )
+
+    old_status = models.CharField(
+        max_length=30,
+        choices=Lead.Status.choices,
+    )
+
+    new_status = models.CharField(
+        max_length=30,
+        choices=Lead.Status.choices,
+    )
+
+    reason = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(
+                fields=["organization", "created_at"],
+                name="lead_hist_org_date_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.lead_id}: "
+            f"{self.old_status} -> {self.new_status}"
+        )
