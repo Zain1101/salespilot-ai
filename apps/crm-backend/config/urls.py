@@ -39,4 +39,9 @@ urlpatterns = [
     AcceptInvitationView.as_view(),
     name="accept-invitation",
     ),
+    
+    path(
+    "api/v1/organizations/<uuid:organization_id>/companies/",
+    include("apps.companies.urls"),
+    ),
 ]
