@@ -5,6 +5,11 @@ from .views import (
     CompanyDetailView,
 )
 
+from apps.contacts.archive_views import (
+    CompanyArchiveView,
+    CompanyRestoreView,
+)
+
 
 urlpatterns = [
     path(
@@ -17,5 +22,16 @@ urlpatterns = [
         "<uuid:pk>/",
         CompanyDetailView.as_view(),
         name="company-detail",
+    ),
+    path(
+    "<uuid:pk>/archive/",
+    CompanyArchiveView.as_view(),
+    name="company-archive",
+    ),
+
+    path(
+        "<uuid:pk>/restore/",
+        CompanyRestoreView.as_view(),
+        name="company-restore",
     ),
 ]

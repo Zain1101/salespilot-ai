@@ -92,3 +92,50 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}".strip()
+    
+class CRMArchiveAudit(models.Model):
+
+    class EntityType(models.TextChoices):
+        COMPANY = "company", "Company"
+        CONTACT = "contact", "Contact"
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="crm_archive_audits",
+    )
+
+    entity_type = models.CharField(
+        max_length=20,
+        choices=EntityType.choices,
+    )
+
+    entity_id = models.UUIDField()
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="crm_archive_actions",
+    )
+
+    old_status = models.BooleanField()
+    new_status = models.BooleanField()
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return (
+            f"{self.entity_type} {self.entity_id}: "
+            f"{self.old_status} -> {self.new_status}"
+        )
