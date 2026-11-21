@@ -211,17 +211,15 @@ class LeadAPITests(APITestCase):
     def test_sales_rep_can_be_assigned(self):
         self.client.force_authenticate(user=self.owner_a)
 
-        response = self.client.patch(
+        response = self.client.post(
             reverse(
-                "lead-detail",
+                "lead-assign",
                 kwargs={
                     "organization_id": self.org_a.id,
                     "pk": self.lead_a.id,
                 },
             ),
-            {
-                "assigned_to": str(self.rep_membership.id),
-            },
+            {"assigned_to": str(self.rep_membership.id)},
         )
 
         self.assertEqual(response.status_code, 200)

@@ -193,3 +193,64 @@ class LeadStatusHistory(models.Model):
             f"{self.lead_id}: "
             f"{self.old_status} -> {self.new_status}"
         )
+        
+class LeadAssignmentHistory(models.Model):
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="lead_assignment_events",
+    )
+
+    lead = models.ForeignKey(
+        Lead,
+        on_delete=models.PROTECT,
+        related_name="assignment_history",
+    )
+
+    previous_assignee = models.ForeignKey(
+        "organizations.Membership",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="previous_lead_assignments",
+    )
+
+    new_assignee = models.ForeignKey(
+        "organizations.Membership",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="new_lead_assignments",
+    )
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="lead_assignment_changes",
+    )
+
+    reason = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+        indexes = [
+            models.Index(
+                fields=["organization", "created_at"],
+                name="lead_assign_org_date_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Assignment change for lead {self.lead_id}"

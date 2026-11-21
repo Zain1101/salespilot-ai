@@ -30,9 +30,7 @@ class LeadSerializer(serializers.ModelSerializer):
     )
 
     assigned_to = serializers.PrimaryKeyRelatedField(
-        queryset=Membership.objects.none(),
-        required=False,
-        allow_null=True,
+        read_only=True,
     )
 
     company_name = serializers.CharField(
@@ -114,14 +112,7 @@ class LeadSerializer(serializers.ModelSerializer):
             )
         )
 
-        self.fields["assigned_to"].queryset = (
-            Membership.objects.filter(
-                organization_id=organization_id,
-                is_active=True,
-                user__is_active=True,
-                role__in=ASSIGNABLE_ROLES,
-            )
-        )
+        
 
     def get_contact_name(self, obj):
         if obj.contact is None:
@@ -151,11 +142,7 @@ class LeadSerializer(serializers.ModelSerializer):
             self.instance.contact if self.instance else None,
         )
 
-        assigned_to = attrs.get(
-            "assigned_to",
-            self.instance.assigned_to
-            if self.instance else None,
-        )
+    
 
         organization_id = (
             self.context["view"].kwargs["organization_id"]
@@ -187,22 +174,18 @@ class LeadSerializer(serializers.ModelSerializer):
                             "the selected company."
                         )
                     })
-
-        if assigned_to is not None:
-
-            if (
-                assigned_to.organization_id != organization_id
-                or not assigned_to.is_active
-                or not assigned_to.user.is_active
-                or assigned_to.role not in ASSIGNABLE_ROLES
-            ):
-                raise serializers.ValidationError({
-                    "assigned_to": (
-                        "Assigned employee is not available."
-                    )
-                })
+    
 
         return attrs
+    def to_internal_value(self, data):
+        if "assigned_to" in data:
+            raise serializers.ValidationError({
+                "assigned_to": (
+                    "Use the dedicated lead assignment endpoint."
+                )
+            })
+
+        return super().to_internal_value(data)
 class LeadStatusTransitionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=Lead.Status.choices,
@@ -226,3 +209,17 @@ class LeadStatusTransitionSerializer(serializers.Serializer):
                 })
 
         return attrs
+    
+class LeadAssignmentSerializer(serializers.Serializer):
+
+    assigned_to = serializers.UUIDField(
+        required=True,
+        allow_null=True,
+    )
+
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        trim_whitespace=True,
+    )

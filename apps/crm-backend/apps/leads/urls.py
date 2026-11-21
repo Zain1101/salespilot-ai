@@ -8,6 +8,10 @@ from .status_views import (
     LeadStatusTransitionView,
     LeadStatusHistoryView,
 )
+from .assignment_views import (
+    LeadAssignmentView,
+    LeadAssignmentHistoryView,
+)
 
 
 urlpatterns = [
@@ -33,5 +37,17 @@ urlpatterns = [
         "<uuid:pk>/status-history/",
         LeadStatusHistoryView.as_view(),
         name="lead-status-history",
+    ),
+    
+    path(
+    "<uuid:pk>/assign/",
+    LeadAssignmentView.as_view(),
+    name="lead-assign",
+    ),
+
+    path(
+        "<uuid:pk>/assignment-history/",
+        LeadAssignmentHistoryView.as_view(),
+        name="lead-assignment-history",
     ),
 ]
