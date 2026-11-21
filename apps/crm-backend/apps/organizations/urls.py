@@ -8,6 +8,10 @@ from .invitation_views import (
     OrganizationInvitationView,
     RevokeInvitationView,
 )
+from .member_views import (
+    OrganizationMemberListView,
+    OrganizationMemberDetailView,
+)
 
 urlpatterns = [
     path(
@@ -32,5 +36,17 @@ urlpatterns = [
         "<uuid:organization_id>/invitations/<uuid:invitation_id>/revoke/",
         RevokeInvitationView.as_view(),
         name="revoke-invitation",
+    ),
+    
+    path(
+    "<uuid:organization_id>/members/",
+    OrganizationMemberListView.as_view(),
+    name="organization-members",
+    ),
+
+    path(
+        "<uuid:organization_id>/members/<uuid:pk>/",
+        OrganizationMemberDetailView.as_view(),
+        name="organization-member-detail",
     ),
 ]

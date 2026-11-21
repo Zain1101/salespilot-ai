@@ -2,7 +2,6 @@ from rest_framework.permissions import BasePermission
 
 from .models import Membership
 
-
 class IsOrganizationAdmin(BasePermission):
     """
     Only active Owners and Admins of an active
@@ -27,4 +26,27 @@ class IsOrganizationAdmin(BasePermission):
                 Membership.Role.OWNER,
                 Membership.Role.ADMIN,
             ],
+        ).exists()
+        
+class IsOrganizationMember(BasePermission):
+    """
+    Allow access only to active members
+    of an active organization.
+    """
+
+    message = "You do not have access to this organization."
+
+    def has_permission(self, request, view):
+
+        if not request.user.is_authenticated:
+            return False
+
+        organization = view.get_organization()
+
+        return Membership.objects.filter(
+            organization=organization,
+            organization__is_active=True,
+            user=request.user,
+            user__is_active=True,
+            is_active=True,
         ).exists()

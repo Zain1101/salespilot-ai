@@ -92,3 +92,41 @@ class AcceptInvitationSerializer(serializers.Serializer):
         trim_whitespace=True,
         write_only=True,
     )
+    
+class MembershipSerializer(serializers.ModelSerializer):
+
+    user_id = serializers.IntegerField(
+        source="user.id",
+        read_only=True,
+    )
+
+    email = serializers.EmailField(
+        source="user.email",
+        read_only=True,
+    )
+
+    first_name = serializers.CharField(
+        source="user.first_name",
+        read_only=True,
+    )
+
+    last_name = serializers.CharField(
+        source="user.last_name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = Membership
+
+        fields = [
+            "id",
+            "user_id",
+            "email",
+            "first_name",
+            "last_name",
+            "role",
+            "is_active",
+            "joined_at",
+        ]
+
+        read_only_fields = fields
