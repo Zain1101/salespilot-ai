@@ -9,7 +9,15 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
 from django.utils import timezone
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 
+from .models import (
+    Organization,
+    Membership,
+    OrganizationInvitation,
+    MembershipRoleAudit,
+)
 
 @transaction.atomic
 def create_organization(*, name, owner, timezone="UTC"):
@@ -196,3 +204,114 @@ def accept_invitation(*, token, user):
     invitation.save(update_fields=["status", "accepted_at"])
 
     return membership
+
+@transaction.atomic
+def update_member_role(
+    *,
+    organization,
+    changed_by,
+    membership_id,
+    new_role,
+):
+    # Lock the organization to serialize membership
+    # management operations that follow this convention.
+    locked_org = Organization.objects.select_for_update().get(
+        pk=organization.pk
+    )
+
+    if not locked_org.is_active:
+        raise PermissionDenied("Organization is inactive.")
+
+    if not changed_by.is_authenticated or not changed_by.is_active:
+        raise PermissionDenied("Unauthorized user.")
+
+    actor_membership = (
+        Membership.objects.select_for_update()
+        .filter(
+            organization=locked_org,
+            user=changed_by,
+            is_active=True,
+        )
+        .first()
+    )
+
+    if actor_membership is None:
+        raise PermissionDenied(
+            "You are not an active organization member."
+        )
+
+    if actor_membership.role not in [
+        Membership.Role.OWNER,
+        Membership.Role.ADMIN,
+    ]:
+        raise PermissionDenied(
+            "You cannot manage employee roles."
+        )
+
+    target = (
+        Membership.objects.select_for_update()
+        .select_related("user")
+        .filter(
+            pk=membership_id,
+            organization=locked_org,
+        )
+        .first()
+    )
+
+    if target is None:
+        raise ValidationError("Membership not found.")
+
+    if not target.is_active or not target.user.is_active:
+        raise ValidationError(
+            "Cannot change the role of an inactive member."
+        )
+
+    if target.user_id == changed_by.pk:
+        raise PermissionDenied(
+            "You cannot change your own role."
+        )
+
+    allowed_roles = [
+        Membership.Role.ADMIN,
+        Membership.Role.MANAGER,
+        Membership.Role.SALES_REP,
+        Membership.Role.VIEWER,
+    ]
+
+    if new_role not in allowed_roles:
+        raise ValidationError("Invalid target role.")
+
+    if target.role == Membership.Role.OWNER:
+        raise PermissionDenied(
+            "Owner roles cannot be changed here."
+        )
+
+    # Admins cannot modify or create other admins.
+    if actor_membership.role == Membership.Role.ADMIN:
+        if target.role == Membership.Role.ADMIN:
+            raise PermissionDenied(
+                "Admins cannot modify other admins."
+            )
+
+        if new_role == Membership.Role.ADMIN:
+            raise PermissionDenied(
+                "Only an Owner can assign Admin roles."
+            )
+
+    if target.role == new_role:
+        return target
+
+    previous_role = target.role
+
+    target.role = new_role
+    target.save(update_fields=["role"])
+
+    MembershipRoleAudit.objects.create(
+        organization=locked_org,
+        membership=target,
+        changed_by=changed_by,
+        old_role=previous_role,
+        new_role=new_role,
+    )
+
+    return target

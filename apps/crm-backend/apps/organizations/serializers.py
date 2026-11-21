@@ -130,3 +130,13 @@ class MembershipSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = fields
+        
+class UpdateMemberRoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(
+        choices=[
+            Membership.Role.ADMIN,
+            Membership.Role.MANAGER,
+            Membership.Role.SALES_REP,
+            Membership.Role.VIEWER,
+        ]
+    )

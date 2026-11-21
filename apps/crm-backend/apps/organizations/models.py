@@ -171,3 +171,41 @@ class OrganizationInvitation(models.Model):
             f"{self.email} invited to "
             f"{self.organization.name}"
         )
+        
+class MembershipRoleAudit(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="role_audits",
+    )
+
+    membership = models.ForeignKey(
+        Membership,
+        on_delete=models.PROTECT,
+        related_name="role_audits",
+    )
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="performed_role_changes",
+    )
+
+    old_role = models.CharField(max_length=20)
+    new_role = models.CharField(max_length=20)
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return (
+            f"{self.old_role} -> {self.new_role} "
+            f"for {self.membership.user.email}"
+        )
