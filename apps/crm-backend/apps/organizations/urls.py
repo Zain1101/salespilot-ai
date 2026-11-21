@@ -13,6 +13,10 @@ from .member_views import (
     OrganizationMemberDetailView,
 )
 from .member_views import UpdateMemberRoleView
+from .member_views import (
+    DeactivateMemberView,
+    ReactivateMemberView,
+)
 
 urlpatterns = [
     path(
@@ -55,5 +59,17 @@ urlpatterns = [
     "<uuid:organization_id>/members/<uuid:member_id>/role/",
     UpdateMemberRoleView.as_view(),
     name="update-member-role",
+    ),
+    
+    path(
+    "<uuid:organization_id>/members/<uuid:member_id>/deactivate/",
+    DeactivateMemberView.as_view(),
+    name="deactivate-member",
+    ),
+
+    path(
+        "<uuid:organization_id>/members/<uuid:member_id>/reactivate/",
+        ReactivateMemberView.as_view(),
+        name="reactivate-member",
     ),
 ]

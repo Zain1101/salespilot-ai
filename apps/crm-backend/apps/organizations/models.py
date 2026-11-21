@@ -209,3 +209,39 @@ class MembershipRoleAudit(models.Model):
             f"{self.old_role} -> {self.new_role} "
             f"for {self.membership.user.email}"
         )
+        
+class MembershipStatusAudit(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.PROTECT,
+        related_name="membership_status_audits",
+    )
+
+    membership = models.ForeignKey(
+        Membership,
+        on_delete=models.PROTECT,
+        related_name="status_audits",
+    )
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="membership_status_changes",
+    )
+
+    old_status = models.BooleanField()
+    new_status = models.BooleanField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return (
+            f"Membership {self.membership_id}: "
+            f"{self.old_status} -> {self.new_status}"
+        )

@@ -18,6 +18,13 @@ from rest_framework.views import APIView
 from .permissions import IsOrganizationAdmin
 from .serializers import UpdateMemberRoleSerializer
 from .services import update_member_role
+from django.core.exceptions import PermissionDenied, ValidationError
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .permissions import IsOrganizationAdmin
+from .services import change_membership_status
 
 class OrganizationMemberMixin:
     """
@@ -117,3 +124,48 @@ class UpdateMemberRoleView(
             MembershipSerializer(membership).data,
             status=status.HTTP_200_OK,
         )
+
+class MembershipStatusBaseView(
+    OrganizationMemberMixin,
+    APIView,
+):
+    permission_classes = [
+        IsAuthenticated,
+        IsOrganizationAdmin,
+    ]
+
+    target_status = None
+
+    def post(self, request, organization_id, member_id):
+        try:
+            membership = change_membership_status(
+                organization=self.get_organization(),
+                changed_by=request.user,
+                membership_id=member_id,
+                active=self.target_status,
+            )
+
+        except PermissionDenied as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        except ValidationError as exc:
+            return Response(
+                {"detail": exc.messages},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            MembershipSerializer(membership).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class DeactivateMemberView(MembershipStatusBaseView):
+    target_status = False
+
+
+class ReactivateMemberView(MembershipStatusBaseView):
+    target_status = True     

@@ -18,6 +18,7 @@ from .models import (
     OrganizationInvitation,
     MembershipRoleAudit,
 )
+from .models import MembershipStatusAudit
 
 @transaction.atomic
 def create_organization(*, name, owner, timezone="UTC"):
@@ -312,6 +313,106 @@ def update_member_role(
         changed_by=changed_by,
         old_role=previous_role,
         new_role=new_role,
+    )
+
+    return target
+
+@transaction.atomic
+def change_membership_status(
+    *,
+    organization,
+    changed_by,
+    membership_id,
+    active,
+):
+    if not isinstance(active, bool):
+        raise ValidationError("Active must be a boolean.")
+
+    # Serialize organization membership changes.
+    locked_org = (
+        Organization.objects
+        .select_for_update()
+        .get(pk=organization.pk)
+    )
+
+    if not locked_org.is_active:
+        raise PermissionDenied("Organization is inactive.")
+
+    if (
+        not changed_by
+        or not changed_by.is_authenticated
+        or not changed_by.is_active
+    ):
+        raise PermissionDenied("Unauthorized user.")
+
+    actor = (
+        Membership.objects
+        .select_for_update()
+        .filter(
+            organization=locked_org,
+            user=changed_by,
+            is_active=True,
+        )
+        .first()
+    )
+
+    if actor is None or actor.role not in [
+        Membership.Role.OWNER,
+        Membership.Role.ADMIN,
+    ]:
+        raise PermissionDenied(
+            "You cannot manage membership status."
+        )
+
+    target = (
+        Membership.objects
+        .select_for_update()
+        .select_related("user")
+        .filter(
+            pk=membership_id,
+            organization=locked_org,
+        )
+        .first()
+    )
+
+    if target is None:
+        raise ValidationError("Membership not found.")
+
+    if target.user_id == changed_by.pk:
+        raise PermissionDenied(
+            "You cannot change your own membership status."
+        )
+
+    if target.role == Membership.Role.OWNER:
+        raise PermissionDenied(
+            "Owner memberships cannot be modified here."
+        )
+
+    if actor.role == Membership.Role.ADMIN:
+        if target.role == Membership.Role.ADMIN:
+            raise PermissionDenied(
+                "Admins cannot manage other admins."
+            )
+
+    if active and not target.user.is_active:
+        raise ValidationError(
+            "Cannot reactivate a globally inactive user."
+        )
+
+    if target.is_active == active:
+        return target
+
+    old_status = target.is_active
+
+    target.is_active = active
+    target.save(update_fields=["is_active"])
+
+    MembershipStatusAudit.objects.create(
+        organization=locked_org,
+        membership=target,
+        changed_by=changed_by,
+        old_status=old_status,
+        new_status=active,
     )
 
     return target
