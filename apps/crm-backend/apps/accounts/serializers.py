@@ -13,8 +13,14 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "email_verified",
         ]
-        read_only_fields = ["id", "email"]
+
+        read_only_fields = [
+            "id",
+            "email",
+            "email_verified",
+        ]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -67,3 +73,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=password,
             **validated_data,
         )
+        
+class VerifyEmailSerializer(serializers.Serializer):
+    token = serializers.CharField(
+        max_length=256,
+        allow_blank=False,
+        trim_whitespace=True,
+        write_only=True,
+    )
