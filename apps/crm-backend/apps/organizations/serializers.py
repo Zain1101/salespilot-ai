@@ -84,3 +84,11 @@ class InvitationSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = fields
+        
+class AcceptInvitationSerializer(serializers.Serializer):
+    token = serializers.CharField(
+        max_length=256,
+        allow_blank=False,
+        trim_whitespace=True,
+        write_only=True,
+    )

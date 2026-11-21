@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from apps.organizations.invitation_views import AcceptInvitationView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -27,8 +28,15 @@ urlpatterns = [
         "api/v1/auth/",
         include("apps.accounts.urls"),
     ),
+    
     path(
     "api/v1/organizations/",
     include("apps.organizations.urls"),
+    ),
+    
+    path(
+    "api/v1/invitations/accept/",
+    AcceptInvitationView.as_view(),
+    name="accept-invitation",
     ),
 ]

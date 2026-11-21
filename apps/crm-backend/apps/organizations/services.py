@@ -146,10 +146,31 @@ def accept_invitation(*, token, user):
             "This organization is inactive."
         )
 
-    if invitation.email.lower() != user.email.lower():
+    # Lock and reload the user to get current verification status.
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+    locked_user = (
+        User.objects
+        .select_for_update()
+        .get(pk=user.pk)
+    )
+
+    if not locked_user.is_active:
+        raise PermissionDenied("User account is inactive.")
+
+    if not locked_user.email_verified:
+        raise PermissionDenied(
+            "Please verify your email before accepting invitations."
+        )
+
+    if invitation.email.lower() != locked_user.email.lower():
         raise PermissionDenied(
             "This invitation belongs to a different email address."
         )
+
+    user = locked_user
 
     membership, created = Membership.objects.get_or_create(
         organization=invitation.organization,

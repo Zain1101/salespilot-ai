@@ -15,8 +15,8 @@ from .serializers import (
     InvitationCreateSerializer,
     InvitationSerializer,
 )
-from .services import create_invitation
-
+from .services import create_invitation, accept_invitation
+from .serializers import AcceptInvitationSerializer
 
 class OrganizationInvitationView(APIView):
     permission_classes = [
@@ -140,3 +140,40 @@ class RevokeInvitationView(APIView):
         return Response({
             "message": "Invitation revoked successfully."
         })
+        
+class AcceptInvitationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = AcceptInvitationSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            membership = accept_invitation(
+                token=serializer.validated_data["token"],
+                user=request.user,
+            )
+
+        except ValidationError as exc:
+            return Response(
+                {"detail": exc.messages},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {
+                "message": "Invitation accepted successfully.",
+                "organization": {
+                    "id": str(membership.organization.id),
+                    "name": membership.organization.name,
+                },
+                "membership": {
+                    "id": str(membership.id),
+                    "role": membership.role,
+                    "is_active": membership.is_active,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
