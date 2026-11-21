@@ -59,4 +59,9 @@ urlpatterns = [
     "api/v1/organizations/<uuid:organization_id>/opportunities/",
     include("apps.opportunities.urls"),
     ),
+    
+    path(
+    "api/v1/organizations/<uuid:organization_id>/pipelines/",
+    include("apps.pipelines.urls"),
+    ),
 ]

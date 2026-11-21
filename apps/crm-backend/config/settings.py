@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.contacts",
     "apps.leads",
     "apps.opportunities",
+    "apps.pipelines",
 ]
 
 MIDDLEWARE = [
