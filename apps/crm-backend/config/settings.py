@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "apps.opportunities",
     "apps.pipelines",
     "apps.analytics",
+    "apps.activities",
 ]
 
 MIDDLEWARE = [
