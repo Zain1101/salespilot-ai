@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     
     "apps.companies",
     "apps.contacts",
+    "apps.leads",
 ]
 
 MIDDLEWARE = [
