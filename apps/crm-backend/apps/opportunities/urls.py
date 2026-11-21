@@ -8,6 +8,10 @@ from .stage_views import (
     OpportunityStageTransitionView,
     OpportunityStageHistoryView,
 )
+from .outcome_views import (
+    OpportunityCloseView,
+    OpportunityOutcomeHistoryView,
+)
 
 
 urlpatterns = [
@@ -33,5 +37,17 @@ urlpatterns = [
         "<uuid:pk>/stage-history/",
         OpportunityStageHistoryView.as_view(),
         name="opportunity-stage-history",
+    ),
+    
+    path(
+    "<uuid:pk>/close/",
+    OpportunityCloseView.as_view(),
+    name="opportunity-close",
+    ),
+
+    path(
+        "<uuid:pk>/outcome-history/",
+        OpportunityOutcomeHistoryView.as_view(),
+        name="opportunity-outcome-history",
     ),
 ]

@@ -64,6 +64,10 @@ class OpportunitySerializer(serializers.ModelSerializer):
             "stage",
             "stage_name",
             "stage_probability",
+            "actual_value",
+            "closed_at",
+            "closed_by",
+            "loss_reason",
         ]
 
         read_only_fields = fields
@@ -82,3 +86,62 @@ class OpportunityStageTransitionSerializer(
         max_length=2000,
         trim_whitespace=True,
     )
+    
+class OpportunityCloseSerializer(serializers.Serializer):
+
+    outcome = serializers.ChoiceField(
+        choices=[
+            ("won", "Won"),
+            ("lost", "Lost"),
+        ]
+    )
+
+    actual_value = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        allow_null=True,
+    )
+
+    loss_reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        trim_whitespace=True,
+    )
+
+    def validate(self, attrs):
+        outcome = attrs["outcome"]
+
+        if outcome == "won":
+            if attrs.get("actual_value") is None:
+                raise serializers.ValidationError({
+                    "actual_value": (
+                        "Actual value is required for Won deals."
+                    )
+                })
+
+            if attrs.get("loss_reason"):
+                raise serializers.ValidationError({
+                    "loss_reason": (
+                        "Loss reason is only used for Lost deals."
+                    )
+                })
+
+        if outcome == "lost":
+            if not attrs.get("loss_reason", "").strip():
+                raise serializers.ValidationError({
+                    "loss_reason": (
+                        "A loss reason is required."
+                    )
+                })
+
+            if attrs.get("actual_value") is not None:
+                raise serializers.ValidationError({
+                    "actual_value": (
+                        "Actual value is only used for Won deals."
+                    )
+                })
+
+        return attrs

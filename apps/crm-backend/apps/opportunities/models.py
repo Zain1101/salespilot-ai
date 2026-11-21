@@ -103,6 +103,30 @@ class Opportunity(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True
     )
+    actual_value = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+
+    closed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="closed_sales_opportunities",
+    )
+
+    loss_reason = models.TextField(
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-created_at", "-id"]
@@ -174,4 +198,69 @@ class OpportunityStageHistory(models.Model):
         return (
             f"{self.opportunity_id}: "
             f"{self.old_stage_id} -> {self.new_stage_id}"
+        )
+        
+class OpportunityOutcomeHistory(models.Model):
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.PROTECT,
+        related_name="opportunity_outcome_events",
+    )
+
+    opportunity = models.ForeignKey(
+        Opportunity,
+        on_delete=models.PROTECT,
+        related_name="outcome_history",
+    )
+
+    old_status = models.CharField(
+        max_length=20,
+        choices=Opportunity.Status.choices,
+    )
+
+    new_status = models.CharField(
+        max_length=20,
+        choices=Opportunity.Status.choices,
+    )
+
+    actual_value = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+
+    loss_reason = models.TextField(blank=True)
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="opportunity_outcome_changes",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+        indexes = [
+            models.Index(
+                fields=["organization", "created_at"],
+                name="opp_outcome_org_date_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.opportunity_id}: "
+            f"{self.old_status} -> {self.new_status}"
         )
