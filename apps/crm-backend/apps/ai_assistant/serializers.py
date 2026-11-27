@@ -15,3 +15,11 @@ class OpportunityAIRequestSerializer(serializers.Serializer):
             "the next appropriate actions."
         ),
     )
+
+class SalesAgentRequestSerializer(serializers.Serializer):
+    question = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        trim_whitespace=True,
+        max_length=1000,
+    )
