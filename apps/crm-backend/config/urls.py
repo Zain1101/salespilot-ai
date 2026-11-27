@@ -84,4 +84,9 @@ urlpatterns = [
     "api/v1/organizations/<uuid:organization_id>/notifications/",
     include("apps.notifications.urls"),
     ),
+    
+    path(
+    "api/v1/organizations/<uuid:organization_id>/ai/",
+    include("apps.ai_assistant.urls"),
+    ),
 ]
